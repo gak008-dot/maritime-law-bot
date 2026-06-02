@@ -1,9 +1,13 @@
+import os
+# CRITICAL FIX: Set environment variables BEFORE importing LangChain/Torch
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["OMP_NUM_THREADS"] = "1"
+
 import streamlit as st
 from groq import Groq
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-import os
 
 st.set_page_config(page_title="Indian Maritime Law Bot", page_icon="⚓", layout="centered")
 
