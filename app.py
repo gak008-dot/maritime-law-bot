@@ -42,10 +42,11 @@ def initialize_vector_db():
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     return FAISS.from_documents(docs, embeddings)
 
+# Main Application Logic Execution Flow
 if not api_key:
     st.info("← Please add your Groq API key in the sidebar (or configure it in Streamlit Secrets) to start chatting.")
 else:
-    # CLEANUP STEP: If the key is validated, collapse the sidebar completely for mobile users
+    # CLEANUP STEP: Collapse the sidebar completely for mobile users if key is valid
     if "GROQ_API_KEY" in st.secrets:
         st.markdown("<style>section[data-testid='stSidebar'] {display: none;}</style>", unsafe_allow_html=True)
 
@@ -86,3 +87,15 @@ else:
                     ],
                     stream=True,
                 )
+                
+                for chunk in completion:
+                    if chunk.choices[0].delta.content:
+                        full_response += chunk.choices[0].delta.content
+                        response_placeholder.markdown(full_response + "▌")
+                        
+                response_placeholder.markdown(full_response)
+                
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
