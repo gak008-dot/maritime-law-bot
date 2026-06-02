@@ -1,5 +1,4 @@
 import os
-# CRITICAL FIX: Set environment variables BEFORE importing LangChain/Torch
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["OMP_NUM_THREADS"] = "1"
 
@@ -11,26 +10,12 @@ from langchain_community.vectorstores import FAISS
 
 st.set_page_config(page_title="Indian Maritime Law Bot", page_icon="⚓", layout="centered")
 
-# Custom CSS injection to fix padding issues on mobile Chrome
-st.markdown("""
-    <style>
-    .block-container { padding-top: 2rem; padding-bottom: 2rem; }
-    @media (max-width: 640px) {
-        .stChatMessage { padding: 0.5rem; }
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 st.title("⚓ Indian Merchant Shipping Act Bot")
-st.caption("Instant Mobile Q&A — Powered by Groq LPU & RAG")
+st.caption("Testing Mode — Manual API Entry")
 
-# API Key Check (Prioritize Streamlit Secrets, fallback to manual entry)
-if "GROQ_API_KEY" in st.secrets:
-    api_key = st.secrets["GROQ_API_KEY"]
-else:
-    sidebar_placeholder = st.sidebar.empty()
-    api_key = sidebar_placeholder.text_input("Enter Groq API Key to test:", type="password")
-    st.sidebar.markdown("[Get a free key here](https://console.groq.com)")
+# FORCED MANUAL ENTRY: This ignores Streamlit Secrets completely
+api_key = st.text_input("Paste your fresh Groq API Key here:", type="password")
+st.markdown("[Click here to get a free key from Groq Console](https://console.groq.com/keys)")
 
 # Initialize Vector DB
 @st.cache_resource
@@ -39,21 +24,16 @@ def initialize_vector_db():
         with open("merchant_shipping_act.txt", "r", encoding="utf-8") as f:
             text_data = f.read()
     else:
-        text_data = "Merchant Shipping Act 2025. Section 15: Rules for vessel registration under the Indian Flag. Section 59: Minimum age for seafarers is 16."
+        text_data = "Merchant Shipping Act 2025. Section 59: Minimum age for seafarers is 16."
             
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
     docs = text_splitter.create_documents([text_data])
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     return FAISS.from_documents(docs, embeddings)
 
-# Main Application Logic Execution Flow
 if not api_key:
-    st.info("← Please add your Groq API key in the sidebar (or configure it in Streamlit Secrets) to start chatting.")
+    st.info("⚠️ Please paste your active Groq API Key into the box above to unlock the chat.")
 else:
-    # CLEANUP STEP: Collapse the sidebar completely for mobile users if key is valid
-    if "GROQ_API_KEY" in st.secrets:
-        st.markdown("<style>section[data-testid='stSidebar'] {display: none;}</style>", unsafe_allow_html=True)
-
     try:
         client = Groq(api_key=api_key)
         db = initialize_vector_db()
