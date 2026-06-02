@@ -1,4 +1,5 @@
 import os
+# Fix background threading flags before loading modules
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["OMP_NUM_THREADS"] = "1"
 
@@ -10,12 +11,24 @@ from langchain_community.vectorstores import FAISS
 
 st.set_page_config(page_title="Indian Maritime Law Bot", page_icon="⚓", layout="centered")
 
-st.title("⚓ Indian Merchant Shipping Act Bot")
-st.caption("Testing Mode — Manual API Entry")
+# Hide the left sidebar entirely to make it a clean, standalone mobile app layout
+st.markdown("<style>section[data-testid='stSidebar'] {display: none;}</style>", unsafe_allow_html=True)
 
-# FORCED MANUAL ENTRY: This ignores Streamlit Secrets completely
-api_key = st.text_input("Paste your fresh Groq API Key here:", type="password")
-st.markdown("[Click here to get a free key from Groq Console](https://console.groq.com/keys)")
+# Custom CSS padding adjustment to ensure chat layout works natively on phone screens
+st.markdown("""
+    <style>
+    .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+    @media (max-width: 640px) {
+        .stChatMessage { padding: 0.5rem; }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("⚓ Indian Merchant Shipping Act Bot")
+st.caption("Instant Mobile Q&A — Powered by Groq LPU")
+
+# Pull key seamlessly from background secrets (Invisible to the end user)
+api_key = st.secrets.get("GROQ_API_KEY", "")
 
 # Initialize Vector DB
 @st.cache_resource
@@ -32,7 +45,7 @@ def initialize_vector_db():
     return FAISS.from_documents(docs, embeddings)
 
 if not api_key:
-    st.info("⚠️ Please paste your active Groq API Key into the box above to unlock the chat.")
+    st.error("Missing API Key configuration in Streamlit Cloud Secrets. Please configure your key.")
 else:
     try:
         client = Groq(api_key=api_key)
