@@ -21,11 +21,9 @@ st.title("⚓ Indian Merchant Shipping Act Bot")
 st.caption("Instant Mobile Q&A — Powered by Groq LPU & RAG")
 
 # API Key Check (Prioritize Streamlit Secrets, fallback to manual entry)
-# API Key Check (Prioritize Streamlit Secrets, fallback to manual entry)
 if "GROQ_API_KEY" in st.secrets:
     api_key = st.secrets["GROQ_API_KEY"]
 else:
-    # Wrapping this in an empty placeholder lets us clear it later
     sidebar_placeholder = st.sidebar.empty()
     api_key = sidebar_placeholder.text_input("Enter Groq API Key to test:", type="password")
     st.sidebar.markdown("[Get a free key here](https://console.groq.com)")
@@ -47,26 +45,10 @@ def initialize_vector_db():
 if not api_key:
     st.info("← Please add your Groq API key in the sidebar (or configure it in Streamlit Secrets) to start chatting.")
 else:
-    # CLEANUP STEP: If the key is found globally in secrets, collapse the sidebar completely for mobile users
+    # CLEANUP STEP: If the key is validated, collapse the sidebar completely for mobile users
     if "GROQ_API_KEY" in st.secrets:
         st.markdown("<style>section[data-testid='stSidebar'] {display: none;}</style>", unsafe_allow_html=True)
-# Initialize Vector DB
-@st.cache_resource
-def initialize_vector_db():
-    if os.path.exists("merchant_shipping_act.txt"):
-        with open("merchant_shipping_act.txt", "r", encoding="utf-8") as f:
-            text_data = f.read()
-    else:
-        text_data = "Merchant Shipping Act 2025. Section 15: Rules for vessel registration under the Indian Flag. Section 59: Minimum age for seafarers is 16."
-            
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
-    docs = text_splitter.create_documents([text_data])
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    return FAISS.from_documents(docs, embeddings)
 
-if not api_key:
-    st.info("← Please add your Groq API key in the sidebar (or configure it in Streamlit Secrets) to start chatting.")
-else:
     try:
         client = Groq(api_key=api_key)
         db = initialize_vector_db()
@@ -83,7 +65,6 @@ else:
             with st.chat_message("user"):
                 st.markdown(user_query)
 
-            # Limit chunks to k=2 to preserve free-tier tokens
             relevant_chunks = db.similarity_search(user_query, k=2)
             context = "\n\n".join([doc.page_content for doc in relevant_chunks])
 
@@ -97,7 +78,6 @@ else:
                 response_placeholder = st.empty()
                 full_response = ""
                 
-                # Using 8b-instant for fast mobile performance and lower token usage
                 completion = client.chat.completions.create(
                     model="llama-3.1-8b-instant",
                     messages=[
@@ -106,15 +86,3 @@ else:
                     ],
                     stream=True,
                 )
-                
-                for chunk in completion:
-                    if chunk.choices[0].delta.content:
-                        full_response += chunk.choices[0].delta.content
-                        response_placeholder.markdown(full_response + "▌")
-                        
-                response_placeholder.markdown(full_response)
-                
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-            
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
